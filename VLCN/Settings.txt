@@ -1,0 +1,11 @@
+###SCHEDULE###
+0600-0800:Community S02
+0800-1000:Community S02
+1000-1200:Community S03
+1200-1400:Community S04
+1400-1600:Community S02
+1600-1800:Community S02
+1800-2000:Community S03
+2000-2200:Community S04
+2200-2400:Community S05
+#X#ENDSCHEDULE#X#

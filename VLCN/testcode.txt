@@ -1,0 +1,61 @@
+testcode
+
+#def getLength(filename):
+#  result = subprocess.Popen([r'C:\Users\hvons\Downloads\ffmpeg-20171225-613f789-win64-static\bin\ffprobe.exe', filename],
+#    stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell=True)
+#  return [x for x in result.stdout.readlines() if "Duration" in x]
+#r'C:\Users\hvons\Downloads\ffmpeg-20171225-613f789-win64-static\bin\ffprobe.exe'
+#dog = getLength(r'C:\Users\hvons\Videos\VBN\Community S01\Community S01E12.mp4')
+#print(dog)
+
+#dog = subprocess.Popen([r'C:\Users\hvons\Downloads\ffmpeg-20171225-613f789-win64-static\bin\ffprobe.exe', r'C:\Users\hvons\Videos\VBN\Community S01\Community S01E12.mp4'],stdout = subprocess.PIPE, stderr = subprocess.STDOUT, encoding='utf8', shell=True)
+#for x in dog.stdout.readlines():
+ #     if "Duration" in x:
+#          print(x)
+#          break
+
+#dock = (r'C:/Users/hvons/Videos/VBN/Community S04/' + r'Community S04E12.mp4')
+#print(dock)
+#foxy = get_len(dock)
+
+#doggo = list((r'C:\Users\hvons\Videos\VBN\Content\Community S02' + '\\' + x) for x in test if x.endswith('.avi'))
+
+      #  cmd = #subprocess.run(
+        #    [r'C:\Program Files\VideoLAN\VLC\vlc.exe', self.SCREEN_NAME,],
+       #     stdout=subprocess.DEVNULL)
+      #  if cmd.returncode:
+
+   # def get_len_bulk(self,directory):
+   #     contentNames = os.listdir(directory)
+   #     contentList = list((directory + '\\' + x) for x in contentNames if x.endswith(self.ext))
+   #     total=0
+   #     for obj in contentList:
+   #         total = total + self.get_len(obj)
+   #     print(total)
+
+
+
+
+
+
+   # def loadblock(self,blockindex,scheduleinfo,air_type):
+  #      selectedcontent = []
+  #      mountBlock = scheduleinfo[blockindex]
+ #       mountDir = (localSettings.filepath + '\\' + 'Content' + '\\' + mountBlock)
+ #       contentNames = os.listdir(mountDir)
+#        if mountBlock[-3:-2] == 'S':
+#            contenttype = 'Television'
+#        while full == 0:
+#            if air_type == 'type_random':
+#                identcontent = (numpy.random.choice(contentNames))
+#                selectedcontent.append(numpy.random.choice(contentNames))
+#            else:
+#                identcontent = (numpy.random.choice(contentNames))
+#            chauncy = localSettings.cdbPath
+#            with open(chauncy,'r', encoding = 'utf-8') as cdb:
+#            linereader = cdb.read().splitlines()
+#            for x in linereader:
+#                if x.find(identcontent) >= 0:
+#                    identData = x
+#                    break
+#               else

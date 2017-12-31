@@ -1,13 +1,15 @@
-from vlcfox import VLC
+import sys
 import os
 #import tk
 import numpy
 import subprocess
 import json
 import datetime
+sys.path.append(os.getcwd())
+from vlcfox import VLC
 
 class scheduler:
-    def __init__(self, VLCclass):
+    def __init__(self):
         self.filepath = os.path.dirname(os.path.abspath(__file__))
         self.txtSettingsPath = (self.filepath + '\\' + 'Settings.txt')
         self.schedulesPath = (self.filepath + '\\' + 'Schedules')
@@ -16,7 +18,7 @@ class scheduler:
         self.vlcPath = (self.filepath + '\\' + 'VLC\\' + 'vlc.exe')
         self.contentPath = (self.filepath + '\\' + 'Content')
         self.ext = (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".rm", ".swf", ".vob", ".wmv")
-        self.player = VLCclass
+#        self.player = VLCclass
 
 #Checks for the daily schedule file in the schedules folder
     def checkforschedule(self):
@@ -30,7 +32,9 @@ class scheduler:
 #Root method to construct the schedule
     def buildSchedule(self):
         showList = self.getScheduleSettings(self.txtSettingsPath)
+        print('Building...')
         for x in showList:
+            print(x)
             self.loadblock(x,'nochoice')
 
 #Opens, reads, and returns the daily schedule settings                
@@ -52,9 +56,10 @@ class scheduler:
            cleaninfo.append(x[10:-1])
         return cleaninfo
 
-#Loads up a passed 'block' by opening up the content folder, reading the Data.txt file, shuffling it, and selecting until the time block is full, creates a block class out of the data
+#Loads up a passed 'block' by opening up the content folder, reading the Data.txt file, shuffling it, and selecting until the time block is full.
     def loadblock(self, content, choosing):
         if os.path.exists(self.contentPath + '\\' + content + '\\Data.txt'):
+            print('Loading Blocks...')
             with open(chauncy,'r', encoding = 'utf-8') as cdb:
                 linereader = cdb.read().splitlines()
             splitline = self.linesplitter(linereader)
@@ -64,6 +69,7 @@ class scheduler:
             i = 0
             blockcontent = []
             tottime = 0
+            timeclear = True
             while timeclear == True:
                 blockcontent.append(splitline[[tobeshuffled[i]],0])
                 timechuck = splitline[[tobeshuffled[i]],1]
@@ -71,6 +77,9 @@ class scheduler:
                     timeclear = False
                 tottime = tottime + timechuck
             self.passblock = block(blockcontent, tottime)
+        else:
+            print('Generating Data.txt for ' + content)
+            #self.buildtxt(
                
     def linesplitter(self, lines):
         for x in lines:
@@ -125,6 +134,12 @@ class scheduler:
         with open(database, 'w', encoding = 'utf-8') as cdb:
             cdb.write("\n".join(map(str, linereader)))
 
+class ingestedContent:
+    def __init__(self,rootname):
+        pass
+
+
+
 class block:
     def __init__(self,contentList,runtime):
         self.contentList = contentList
@@ -168,31 +183,6 @@ class ContentIndexer:
                     allContent.append(x) 
         self.writeContent(localSettings.cdbPath,allContent)
                 
+dayScheduler = scheduler()
+dayScheduler.checkforschedule()
 
-#localSettings = settings()        
-##Scanner = ContentIndexer()
-##Scanner.checkContent(localSettings.dbPath, Scanner.CollectionPath)
-##dayScheduler = scheduler(localSettings)
-##dailysettings = dayScheduler.getScheduleSettings(localSettings.txtSettingsPath)
-##dayScheduler.loadblock(1,dailysettings,'type_random')
-##dayScheduler.write_len(localSettings.cdbPath, (r'C:\Users\hvons\Videos\VBN\Content\Community S02\\'), 'S02')
-#Basecontent.get_len_bulk(r'C:\Users\hvons\Videos\VBN\Content\Community S02')
-#dayScheduler.get_len_bulk(r'C:\Users\hvons\Videos\VBN\Content\Community S02')
-#PlayerInstance = VLC(localSettings.vlcPath)
-#PlayerInstance.add((Scanner.CollectionPath + '\\' + 'Community S02\\Community S02E02.avi'))
-#PlayerInstance.fullscreen()
-#dayScheduler.cdb_interpret('Community S02E01.avi   length: 1258.423832')
-
-
-
-#def get_len(filename):
-#   result = subprocess.Popen([r'C:\Users\hvons\Videos\VBN\Plugins\ffprobe.exe', filename, '-print_format', 'json', '-show_streams', '-loglevel', 'quiet'],
-#     stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-#   return float(json.loads(result.stdout.read())['streams'][0]['duration'])
-       
-
-#doggo = list((r'C:\Users\hvons\Videos\VBN\Content\Community S02' + '\\' + x) for x in test if x.endswith('.avi'))
-#total=0
-#for obj in doggo:
-#    total = total + get_len(obj)
-#print(total)

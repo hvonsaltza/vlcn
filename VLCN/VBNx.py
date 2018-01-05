@@ -9,8 +9,9 @@ sys.path.append(os.getcwd())
 from vlcfox import VLC
 
 class scheduler:
-    def __init__(self):
+    def __init__(self, VLCclass):
         self.filepath = os.path.dirname(os.path.abspath(__file__))
+        print(self.filepath)
         self.txtSettingsPath = (self.filepath + '\\' + 'Settings.txt')
         self.schedulesPath = (self.filepath + '\\' + 'Schedules')
         self.dbPath = (self.filepath + '\\' + 'db.txt')
@@ -18,7 +19,7 @@ class scheduler:
         self.vlcPath = (self.filepath + '\\' + 'VLC\\' + 'vlc.exe')
         self.contentPath = (self.filepath + '\\' + 'Content')
         self.ext = (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".rm", ".swf", ".vob", ".wmv")
-#        self.player = VLCclass
+        self.player = VLCclass
 
 #Checks for the daily schedule file in the schedules folder
     def checkforschedule(self):
@@ -35,7 +36,10 @@ class scheduler:
         print('Building...')
         for x in showList:
             print(x)
-            self.loadblock(x,'nochoice')
+            hardSchedule = (self.loadblock(x,'nochoice'))
+            for x in hardSchedule:
+                self.player.add(x.directory)
+        
 
 #Opens, reads, and returns the daily schedule settings                
     def getScheduleSettings(self,dataSource):
@@ -56,32 +60,49 @@ class scheduler:
            cleaninfo.append(x[10:-1])
         return cleaninfo
 
-#Loads up a passed 'block' by opening up the content folder, reading the Data.txt file, shuffling it, and selecting until the time block is full.
     def loadblock(self, content, choosing):
-        if os.path.exists(self.contentPath + '\\' + content + '\\Data.txt'):
-            print('Loading Blocks...')
-            with open(chauncy,'r', encoding = 'utf-8') as cdb:
-                linereader = cdb.read().splitlines()
-            splitline = self.linesplitter(linereader)
-            ubound = len(splitline)
-            tobeshuffled = list(range(0,ubound))
-            numpy.random.shuffle(tobeshuffled)
-            i = 0
-            blockcontent = []
-            tottime = 0
-            timeclear = True
-            while timeclear == True:
-                blockcontent.append(splitline[[tobeshuffled[i]],0])
-                timechuck = splitline[[tobeshuffled[i]],1]
-                if tottime + timechuck > 3000:
-                    timeclear = False
-                tottime = tottime + timechuck
-            self.passblock = block(blockcontent, tottime)
-        else:
+        folderpath = (self.contentPath + '\\' + content)
+        if os.path.exists(folderpath + '\\Data.txt') == False:
             print('Generating Data.txt for ' + content)
-            #self.buildtxt(
-               
+            self.buildtxt(folderpath)
+        print('Loading Blocks...')
+        with open((folderpath + '\\Data.txt'),'r', encoding = 'utf-8') as cdb:
+            linereader = cdb.read().splitlines()
+        splitline = self.linesplitter(linereader)
+        #print(splitline[1,0])
+        ubound = len(splitline)
+        tobeshuffled = list(range(0,ubound))
+        numpy.random.shuffle(tobeshuffled)
+        #print(tobeshuffled)
+        i = 0
+        blockcontent = []
+        self.inContent = []
+        tottime = 0
+        timeclear = True
+        while timeclear == True:
+            blockcontent.append(splitline[tobeshuffled[i],0])
+            #print(blockcontent)
+            timechuck = (splitline[[tobeshuffled[i]],1])
+            timechuck = int(numpy.asscalar(timechuck))
+            #print(tottime + timechuck)
+            sub = ingestedContent((folderpath + '\\' + str(splitline[tobeshuffled[i], 0])), timechuck)
+            self.inContent.append(sub)
+            if ((tottime + timechuck) > 3000):
+                timeclear = False
+                return self.inContent
+            else:
+                tottime = (tottime + timechuck)
+                i += 1
+
+    def writeContent(self,dataDestination,toWrite):
+        with open(dataDestination,'w', encoding = 'utf-8') as db:
+            db.write("\n".join(map(str, toWrite)))
+            print('Content Written to ' + str(dataDestination))
+
     def linesplitter(self, lines):
+        Array1 = []
+        Array2 = []
+        Array3 = []
         for x in lines:
             Rbound = x.find('length: ')
             Array1.append(x[:Rbound-3])
@@ -93,6 +114,7 @@ class scheduler:
             Lbound = x.find('aired: ')
             Array3.append(x[Lbound+7:])
         fullArray = numpy.column_stack((Array1,Array2,Array3))
+        return fullArray
          
     def cdb_interpret(self, stringline):
         stringlist = []
@@ -134,24 +156,29 @@ class scheduler:
         with open(database, 'w', encoding = 'utf-8') as cdb:
             cdb.write("\n".join(map(str, linereader)))
 
+    def buildtxt(self, archiveDir):
+        datapath = (archiveDir + '\\Data.txt')
+        archiveList = os.listdir(archiveDir)
+        #print(archiveList)
+        datatotals = []
+        for x in archiveList:
+            if x.endswith(self.ext):
+                print(x)
+                xlength = self.get_len(archiveDir + '\\' + x)
+                x = (x + '   length: ' + str(xlength) + ' endl')
+                datatotals.append(x)
+        with open(datapath,'w+',encoding = 'utf-8') as db:
+            db.write("\n".join(map(str, datatotals)))       
+
 class ingestedContent:
-    def __init__(self,rootname):
-        pass
-
-
-
-class block:
-    def __init__(self,contentList,runtime):
-        self.contentList = contentList
+    def __init__(self,rootname,runtime):
+        self.directory = rootname
         self.runtime = runtime
 
 class ContentIndexer:
     def __init__(self):
         self.CollectionPath = (localSettings.filepath + '\\' + 'Content')
         self.ext = (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".rm", ".swf", ".vob", ".wmv")
-
-    def directorySearch(self, databasepath):
-        os.listdir(self.CollectionPath)
 
     def dataReader(self,dataSource):
         self.linereader = []
@@ -167,11 +194,6 @@ class ContentIndexer:
             self.ingestContent(contentActual)
             self.writeContent(dataSource,contentActual)
 
-    def writeContent(self,dataDestination,toWrite):
-        with open(dataDestination,'w', encoding = 'utf-8') as db:
-            db.write("\n".join(map(str, toWrite)))
-            print('Content Written to ' + str(dataDestination))
-
     def ingestContent(self,contentActual):
         allContent = []
         for x in contentActual:
@@ -182,7 +204,9 @@ class ContentIndexer:
                     print(lookdir + '\\' + x) 
                     allContent.append(x) 
         self.writeContent(localSettings.cdbPath,allContent)
-                
-dayScheduler = scheduler()
+
+
+player = VLC((os.path.dirname(os.path.abspath(__file__))) + '\\' + 'VLC\\' + 'vlc.exe')
+dayScheduler = scheduler(player)
 dayScheduler.checkforschedule()
 

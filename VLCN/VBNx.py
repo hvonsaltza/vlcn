@@ -1,24 +1,25 @@
 import sys
 import os
-#import tk
+import time
 import numpy
 import subprocess
 import json
 import datetime
 sys.path.append(os.getcwd())
 from vlcfox import VLC
+import mpgen
 
 class scheduler:
     def __init__(self, VLCclass):
         self.filepath = os.path.dirname(os.path.abspath(__file__))
-        print(self.filepath)
+##        print(self.filepath)#DEBUG
         self.txtSettingsPath = (self.filepath + '\\' + 'Settings.txt')
         self.schedulesPath = (self.filepath + '\\' + 'Schedules')
         self.dbPath = (self.filepath + '\\' + 'db.txt')
         self.cdbPath = (self.filepath + '\\' + 'cdb.txt')
         self.vlcPath = (self.filepath + '\\' + 'VLC\\' + 'vlc.exe')
         self.contentPath = (self.filepath + '\\' + 'Content')
-        self.ext = (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".rm", ".swf", ".vob", ".wmv")
+        self.ext = (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".rm", ".swf", ".vob", ".wmv", "m4v")
         self.player = VLCclass
 
 #Checks for the daily schedule file in the schedules folder
@@ -30,23 +31,66 @@ class scheduler:
         else:
             self.buildSchedule()
 
-#Root method to construct the schedule
     def buildSchedule(self):
-        showList = self.getScheduleSettings(self.txtSettingsPath)
+        self.scheduledata = self.getScheduleSettings(self.txtSettingsPath)
         print('Building...')
-        for x in showList:
-            print(x)
-            hardSchedule = (self.loadblock(x,'nochoice'))
-            for x in hardSchedule:
-                self.player.add(x.directory)
+        culledBlockList = self.remainingblocks(self.scheduledata)
         
-
+        now = datetime.datetime.now()
+        self.timenow = (str(now)[11:-7])
+        self.blockindex = (numpy.floor(((int((self.timenow)[:2]))/2)))
+        sectime = (60*(int((self.timenow)[3:-3])) + (int((self.timenow)[3:-3])))
+        
+        i = 0
+        blockruntime = 0
+        totalruntime = 0
+        setupstatus = True
+        blockSeek = False
+        self.overrun = 0
+        for x in culledBlockList:
+            #y = x[10:-1]
+            #print(y)
+            hardBlock = (self.loadblock(x, setupstatus))
+            #print(i+self.blockindex)
+            for x in hardBlock:
+                if blockSeek == False:
+                    blockruntime = (x.runtime + blockruntime)
+                    totalruntime = (totalruntime + x.runtime)
+                    if blockruntime >= sectime:
+                        self.player.add(x.directory)
+                        self.player.seek((sectime - (blockruntime - x.runtime)))
+                        blockSeek = True
+                    else:
+                        next
+                elif blockSeek == True:
+                    totalruntime = (totalruntime + x.runtime)
+                    self.player.enqueue(x.directory)
+            i += 1
+            if setupstatus == True:
+                firstTitles = mpgen.titlecard(self.scheduledata, self.blockindex)
+                self.player.enqueue(firstTitles.contentlocation)
+                totalruntime = (totalruntime + firstTitles.runtime)
+                setupstatus = False
+            self.blockindex += 1
+            #print(self.blockindex)
+                
+    def remainingblocks(self, schedule):
+        now = datetime.datetime.now()
+        timenow = (str(now)[11:-10])
+        hour = (int(str(now)[11:-13]))
+        #print(hour)
+        newschedule = []
+        for x in schedule:
+            timechk = (int((x)[:2]))
+            if hour <= timechk:
+                newschedule.append(x)
+        return newschedule
+                
 #Opens, reads, and returns the daily schedule settings                
     def getScheduleSettings(self,dataSource):
         self.linereader = ''
         with open(dataSource,'r',encoding = 'utf-8') as settings:
             rawinfo = []
-            cleaninfo = []
             Take = False
             for line in settings:
                 if Take == True:
@@ -56,42 +100,75 @@ class scheduler:
                 elif '#X#ENDSCHEDULE#X#' in line:
                     Take = False
                     del rawinfo[-1]
-        for x in rawinfo:
-           cleaninfo.append(x[10:-1])
-        return cleaninfo
+        return rawinfo
 
-    def loadblock(self, content, choosing):
-        folderpath = (self.contentPath + '\\' + content)
+    def loadblock(self, contentLine, setupbool):
+        blocktime = ((((int((contentLine[5:9])) - (int((contentLine[:4]))))/100)*3600))
+        folderpath = (self.contentPath + '\\' + (contentLine[10:-1]))
         if os.path.exists(folderpath + '\\Data.txt') == False:
-            print('Generating Data.txt for ' + content)
+            print('Generating Data.txt for ' + (contentLine[10:-1]))
             self.buildtxt(folderpath)
-        print('Loading Blocks...')
+        print('Loading Blocks ' + contentLine)
         with open((folderpath + '\\Data.txt'),'r', encoding = 'utf-8') as cdb:
             linereader = cdb.read().splitlines()
         splitline = self.linesplitter(linereader)
-        #print(splitline[1,0])
         ubound = len(splitline)
         tobeshuffled = list(range(0,ubound))
         numpy.random.shuffle(tobeshuffled)
-        #print(tobeshuffled)
         i = 0
+        titlecard = False
         blockcontent = []
         self.inContent = []
+        rollover = 0
         tottime = 0
+        titletime = 0
         timeclear = True
         while timeclear == True:
+            #print(setupbool)
+            if rollover > 3300 and blocktime >= 6900 and setupbool == False:
+                #print('mid-block title generating')
+                if titlecard == False:
+                    print('building mid titles')
+                    titlecardx = mpgen.titlecard(self.scheduledata, (self.blockindex))
+                    ingestedcard = ingestedContent(titlecardx.contentlocation, titlecardx.runtime)
+                    #print(titlecardx.contentpath)
+                    #print(titlecardx.runtime)
+                    titlecard = True
+                self.inContent.append(ingestedcard)
+                tottime = (tottime + ingestedcard.runtime)
+                rollover = 0
             blockcontent.append(splitline[tobeshuffled[i],0])
-            #print(blockcontent)
             timechuck = (splitline[[tobeshuffled[i]],1])
             timechuck = int(numpy.asscalar(timechuck))
-            #print(tottime + timechuck)
             sub = ingestedContent((folderpath + '\\' + str(splitline[tobeshuffled[i], 0])), timechuck)
-            self.inContent.append(sub)
-            if ((tottime + timechuck) > 3000):
-                timeclear = False
+            if (tottime + timechuck) > blocktime and setupbool == True and self.inContent != False:
+                self.overrun = (tottime - blocktime)
                 return self.inContent
+                timeclear = False
+            elif (tottime + timechuck) > (blocktime - self.overrun) and setupbool == False:
+                print('Building trailing titles')
+                if titlecard == False:
+                    titlecardx = mpgen.titlecard(self.scheduledata, (self.blockindex))
+                    ingestedcard = ingestedContent(titlecardx.contentlocation, titlecardx.runtime)
+                    titlecard = True
+                self.inContent.append(ingestedcard)
+                tottime = (tottime + ingestedcard.runtime)
+                print(titletime)
+                self.overrun = (((tottime) - (blocktime)) + self.overrun)-200
+                print(self.overrun)
+                if (self.overrun < 0):
+                    filler = mpgen.fillerup(-(self.overrun))
+                    for x in filler.items:
+                        print('whynowork')
+                        ingestedfiller = ingestedContent(x.filepath, x.duration)
+                        self.inContent.append(ingestedfiller)
+                print(self.overrun)
+                return self.inContent
+                timeclear = False
             else:
+                self.inContent.append(sub)
                 tottime = (tottime + timechuck)
+                rollover = (rollover + timechuck)
                 i += 1
 
     def writeContent(self,dataDestination,toWrite):
@@ -159,11 +236,10 @@ class scheduler:
     def buildtxt(self, archiveDir):
         datapath = (archiveDir + '\\Data.txt')
         archiveList = os.listdir(archiveDir)
-        #print(archiveList)
+        print(archiveList)
         datatotals = []
         for x in archiveList:
             if x.endswith(self.ext):
-                print(x)
                 xlength = self.get_len(archiveDir + '\\' + x)
                 x = (x + '   length: ' + str(xlength) + ' endl')
                 datatotals.append(x)
@@ -175,38 +251,9 @@ class ingestedContent:
         self.directory = rootname
         self.runtime = runtime
 
-class ContentIndexer:
-    def __init__(self):
-        self.CollectionPath = (localSettings.filepath + '\\' + 'Content')
-        self.ext = (".3g2", ".3gp", ".asf", ".asx", ".avi", ".flv", ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", ".rm", ".swf", ".vob", ".wmv")
-
-    def dataReader(self,dataSource):
-        self.linereader = []
-        with open(dataSource,'r',encoding = 'utf-8') as db:
-            self.linereader = db.read().splitlines()
-            return self.linereader
-
-    def checkContent(self,dataSource,filepath):
-        contentData = self.dataReader(dataSource)
-        contentActual = os.listdir(filepath)
-        if contentData != contentActual:
-            print('Creating Content Database')
-            self.ingestContent(contentActual)
-            self.writeContent(dataSource,contentActual)
-
-    def ingestContent(self,contentActual):
-        allContent = []
-        for x in contentActual:
-            lookdir = (self.CollectionPath + '\\' + x)
-            contentInDir = os.listdir(lookdir)
-            for x in contentInDir:
-                if x.endswith(self.ext):
-                    print(lookdir + '\\' + x) 
-                    allContent.append(x) 
-        self.writeContent(localSettings.cdbPath,allContent)
-
-
 player = VLC((os.path.dirname(os.path.abspath(__file__))) + '\\' + 'VLC\\' + 'vlc.exe')
 dayScheduler = scheduler(player)
 dayScheduler.checkforschedule()
+time.sleep(7)
+dayScheduler.player.fullscreen()
 

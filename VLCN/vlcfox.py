@@ -1,5 +1,6 @@
 import socket
 import subprocess
+import time
 
 
 class VLC:
@@ -9,6 +10,7 @@ class VLC:
         self.PORT = 8888
         
         cmd = subprocess.Popen([filepath,'--rc-host=localhost:8888'], shell=True)
+        time.sleep(3)
         self.SOCK = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.SOCK.connect((self.HOST, self.PORT))
 
@@ -46,8 +48,8 @@ class VLC:
     def shutdown(self):
         self.x('shutdown')
 
-    def test(self, voxel):
-        self.x(voxel)
-
     def fullscreen(self):
         self.x('f on')
+
+    def seek(self, time):
+        self.x('seek %s' % (time,))
